@@ -9,7 +9,8 @@ WORKDIR /
 RUN curl -O https://storage.googleapis.com/golang/go1.9.1.linux-amd64.tar.gz && \
 tar -xvf go1.9.1.linux-amd64.tar.gz && \
 mv go /usr/local
-ENV PATH $PATH:/usr/local/go/bin
+ENV GOPATH $HOME/go
+ENV PATH $PATH:/usr/local/go/bin:$GOPATH/bin
 
 ADD api/iprouteRESt /api/iprouteRESt
 ADD api/iptables-api /api/iptables-api
