@@ -1,4 +1,4 @@
-// Package provides management of routing tables.
+// Package manager provides management of routing tables.
 package manager
 
 import (
@@ -61,9 +61,8 @@ func GetRoutes() (rts string) {
 	if err != nil {
 		log.Error(err.Error())
 		return ""
-	} else {
-		return string(routes)
 	}
+	return string(routes)
 
 }
 
@@ -97,7 +96,7 @@ func ParseStringRoutes(cmdOutput string) (parsedRoutes []model.Route) {
 	return routes
 }
 
-// GetRoutes prepares command to list all network interfaces and executes it with ExecuteIPCommand func.
+// GetInterfaces prepares command to list all network interfaces and executes it with ExecuteIPCommand func.
 // ExecuteIPCommand output is parsed via ParseIfs func.
 // Returns model/interface array serialized into JSON, as string.
 func GetInterfaces() (ifs string) {
@@ -108,9 +107,8 @@ func GetInterfaces() (ifs string) {
 	if err != nil {
 		log.Error(err.Error())
 		return ""
-	} else {
-		return string(interfaces)
 	}
+	return string(interfaces)
 }
 
 // ParseIfs parses ExecuteIpCommand (ip addr show) output to array of model/route.
@@ -139,7 +137,6 @@ func ParseIfs(cmdOut string) (ifNames []model.Interface) {
 // If command is executed successfully, then func returns
 // command line output of command. If command is not executed successfully,
 // then func returns actual error!
-
 func ExecuteIPCommand(args []string) (cmdOut string) {
 	cmd := exec.Command(command, args...)
 	cmdOutput := &bytes.Buffer{}
@@ -154,8 +151,6 @@ func ExecuteIPCommand(args []string) (cmdOut string) {
 			log.Errorf("Error occurred! %s (API problem)", err.Error())
 		}
 		return err.Error()
-	} else {
-		return string(cmdOutput.Bytes())
 	}
-
+	return string(cmdOutput.Bytes())
 }

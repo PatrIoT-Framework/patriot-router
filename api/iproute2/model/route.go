@@ -1,4 +1,4 @@
-// Package provides structures representing objects in routing tables
+// Package model provides structures representing objects in routing tables
 // Network interfaces and routes.
 package model
 

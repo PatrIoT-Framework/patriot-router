@@ -12,14 +12,17 @@ import (
 	"strconv"
 	"strings"
 )
+
 var log = logrus.New()
-func homePage(w http.ResponseWriter, r *http.Request){
-	fmt.Fprintf(w, "Welcome to the HomePage!")
-	fmt.Println("Endpoint Hit: homePage")
+
+// Homepage endpoint
+func homePage(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "IPRoute2 controller!")
 }
 
-func checkParams(params []string) bool{
-	for _,i := range params{
+// CheckParams checks if some index of string array is empty.
+func checkParams(params []string) bool {
+	for _, i := range params {
 		if i == "" {
 			return true
 		}
@@ -27,7 +30,9 @@ func checkParams(params []string) bool{
 	return false
 }
 
-func modRoute(w http.ResponseWriter, r *http.Request)  {
+// ModRoute provides creation and deletion route.
+// Func is called on /iproutes/mod endpoint.
+func modRoute(w http.ResponseWriter, r *http.Request) {
 
 	params := []string{r.URL.Query().Get("destination"),
 		r.URL.Query().Get("mask"), r.URL.Query().Get("interface")}
@@ -36,77 +41,84 @@ func modRoute(w http.ResponseWriter, r *http.Request)  {
 		log.Error("Url Params are missing")
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
-	} else {
-		route := model.Route{Destination: params[0], InterfaceIP: params[2]}
-		route.DestCIDR, _ = strconv.Atoi(params[1])
-
-		switch r.Method {
-
-		case http.MethodPut:
-			manager.CreateRouteWithIfIP(route)
-			log.WithFields(logrus.Fields{
-				"destination" : route.Destination,
-				"dest CIDR" : route.DestCIDR,
-				"Interface" : route.InterfaceIP,
-			}).Info("Created new route!")
-		case http.MethodDelete:
-			manager.RemoveRoute(route)
-			log.WithFields(logrus.Fields{
-				"destination" : route.Destination,
-				"dest CIDR" : route.DestCIDR,
-				"Interface" : route.InterfaceIP,
-			}).Info("Deleted route!")
-		default:
-			log.Error("Unsupported method!")
-			w.WriteHeader(404)
-		}
 	}
+	route := model.Route{Destination: params[0], InterfaceIP: params[2]}
+	route.DestCIDR, _ = strconv.Atoi(params[1])
+
+	switch r.Method {
+
+	case http.MethodPut:
+		manager.CreateRouteWithIfIP(route)
+		log.WithFields(logrus.Fields{
+			"destination": route.Destination,
+			"dest CIDR":   route.DestCIDR,
+			"Interface":   route.InterfaceIP,
+		}).Info("Created new route!")
+	case http.MethodDelete:
+		manager.RemoveRoute(route)
+		log.WithFields(logrus.Fields{
+			"destination": route.Destination,
+			"dest CIDR":   route.DestCIDR,
+			"Interface":   route.InterfaceIP,
+		}).Info("Deleted route!")
+	default:
+		log.Error("Unsupported method!")
+		w.WriteHeader(404)
+	}
+
 }
 
-func modDefaultRoute(w http.ResponseWriter, r *http.Request)  {
+// ModDefaultRoute provides creation and deletion default route.
+// Func is called on /iproutes/default endpoint.
+func modDefaultRoute(w http.ResponseWriter, r *http.Request) {
 
 	params := []string{r.URL.Query().Get("interface")}
 
 	if checkParams(params) {
 		log.Error("Url Params are missing")
 		return
-	} else {
-		route := model.Route{InterfaceIP:params[0]}
-		log.Infof(route.InterfaceIP)
-		switch r.Method {
-
-		case http.MethodPut:
-			manager.CreateDefaultGateway(route)
-			log.WithFields(logrus.Fields{
-				"Interface" : route.InterfaceIP,
-			}).Info("Created default route!")
-		case http.MethodDelete:
-			manager.RemoveDefaultGateway(route)
-			log.WithFields(logrus.Fields{
-				"Interface" : route.InterfaceIP,
-			}).Info("Deleted default route!")
-		default:
-			log.Error("Unsupported method!")
-			w.WriteHeader(404)
-		}
 	}
+	route := model.Route{InterfaceIP: params[0]}
+	log.Infof(route.InterfaceIP)
+	switch r.Method {
+
+	case http.MethodPut:
+		manager.CreateDefaultGateway(route)
+		log.WithFields(logrus.Fields{
+			"Interface": route.InterfaceIP,
+		}).Info("Created default route!")
+	case http.MethodDelete:
+		manager.RemoveDefaultGateway(route)
+		log.WithFields(logrus.Fields{
+			"Interface": route.InterfaceIP,
+		}).Info("Deleted default route!")
+	default:
+		log.Error("Unsupported method!")
+		w.WriteHeader(404)
+	}
+
 }
-func getRoutes(w http.ResponseWriter, r *http.Request)  {
+
+// GetRoutes returns JSON array of routes in string
+func getRoutes(w http.ResponseWriter, r *http.Request) {
 	routes := manager.GetRoutes()
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(routes))
 }
 
-func getInterfaces(w http.ResponseWriter, r *http.Request)  {
+// GetInterfaces returns JSON array of interfaces in string
+func getInterfaces(w http.ResponseWriter, r *http.Request) {
 	interfaces := manager.GetInterfaces()
 	w.Header().Set("Content-Type", "application/json")
 	log.WithFields(logrus.Fields{
-		"test":"test",
+		"test": "test",
 	}).Info("Returned Interfaces!")
 	w.Write([]byte(interfaces))
 }
 
-func setElasticLog(w http.ResponseWriter, r *http.Request)  {
+// SetElasticLog sets hook to elasticsearch server for logrus.
+// Requires parameter elastic with value IPv4 address of elasticsearch server.
+func setElasticLog(w http.ResponseWriter, r *http.Request) {
 
 	params := []string{r.URL.Query().Get("elastic")}
 	interfaces := []model.Interface{}
@@ -125,20 +137,21 @@ func setElasticLog(w http.ResponseWriter, r *http.Request)  {
 	if checkParams(params) {
 		log.Error("Elastic Url is missing")
 		return
-	} else {
-		client, err := elastic.NewClient(elastic.SetURL("http://" + params[0]))
-		if err != nil {
-			log.Panic(err)
-		}
-		hook, err := elogrus.NewElasticHook(client, host, logrus.InfoLevel, "networklogs")
-		if err != nil {
-			log.Panic(err)
-		}
-		log.Hooks.Add(hook)
-		log.Info("Created hook to elastic log")
 	}
+	client, err := elastic.NewClient(elastic.SetURL("http://" + params[0]))
+	if err != nil {
+		log.Panic(err)
+	}
+	hook, err := elogrus.NewElasticHook(client, host, logrus.InfoLevel, "networklogs")
+	if err != nil {
+		log.Panic(err)
+	}
+	log.Hooks.Add(hook)
+	log.Info("Created hook to elastic log")
+
 }
 
+// HandleRequests provides endpoint handling.
 func handleRequests() {
 	http.HandleFunc("/", homePage)
 	http.HandleFunc("/iproutes/mod", modRoute)
