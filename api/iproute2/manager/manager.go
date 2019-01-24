@@ -1,9 +1,10 @@
+// Package provides management of routing tables.
 package manager
 
 import (
 	"bytes"
 	"encoding/json"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"iproute2/model"
 	"os"
 	"os/exec"
@@ -13,30 +14,35 @@ import (
 
 const command = "ip"
 
-func CreateRouteWithIfIP(r model.Route)  {
+var log = logrus.New()
+
+// CreateRouteWithIfIP prepares command to create route and executes it with ExecuteIPCommand func.
+func CreateRouteWithIfIP(r model.Route) {
 	dest := r.Destination + string("/") + strconv.Itoa(r.DestCIDR)
 	args := []string{"route", "add", dest, "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
 	log.Infof(cmdOut)
 
-
 }
 
-func RemoveDefaultGateway(r model.Route)  {
+// RemoveDefaultGateway prepares command to remove default route and executes it with ExecuteIPCommand func.
+func RemoveDefaultGateway(r model.Route) {
 	args := []string{"route", "delete", "default", "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
 	log.Infof(cmdOut)
 
 }
 
-func CreateDefaultGateway(r model.Route)  {
+// CreateDefaultGateway prepares command to create default route and executes it with ExecuteIPCommand func.
+func CreateDefaultGateway(r model.Route) {
 	args := []string{"route", "add", "default", "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
 	log.Infof(cmdOut)
 
 }
 
-func RemoveRoute(r model.Route)  {
+// RemoveRoute prepares command to remove route and executes it with ExecuteIPCommand func.
+func RemoveRoute(r model.Route) {
 	dest := r.Destination + string("/") + strconv.Itoa(r.DestCIDR)
 	args := []string{"route", "delete", dest, "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
@@ -44,6 +50,9 @@ func RemoveRoute(r model.Route)  {
 
 }
 
+// GetRoutes prepares command to list all routes and executes it with ExecuteIPCommand func.
+// ExecuteIPCommand output is parsed via ParseStringRoutes func.
+// Returns model/route array serialized into JSON in string.
 func GetRoutes() (rts string) {
 	args := []string{"route", "show"}
 	cmdOut := ExecuteIPCommand(args)
@@ -58,6 +67,10 @@ func GetRoutes() (rts string) {
 
 }
 
+// ParseStringRoutes parses ExecuteIpCommand (ip route show) output to array of model/route.
+// If route is default route,then only Destination and Interface attributes will be written,
+// DestCIDR will be null.
+// Returns array of model/route.
 func ParseStringRoutes(cmdOutput string) (parsedRoutes []model.Route) {
 	singleRoutes := strings.Split(cmdOutput, "\n")
 	routes := []model.Route{}
@@ -76,7 +89,7 @@ func ParseStringRoutes(cmdOutput string) (parsedRoutes []model.Route) {
 				}
 			}
 			if route[y] == "via" || route[y] == "src" {
-				r.InterfaceIP = route[y + 1]
+				r.InterfaceIP = route[y+1]
 			}
 		}
 		routes = append(routes, r)
@@ -84,7 +97,10 @@ func ParseStringRoutes(cmdOutput string) (parsedRoutes []model.Route) {
 	return routes
 }
 
-func GetInterfaces() (ifs string)  {
+// GetRoutes prepares command to list all network interfaces and executes it with ExecuteIPCommand func.
+// ExecuteIPCommand output is parsed via ParseIfs func.
+// Returns model/interface array serialized into JSON, as string.
+func GetInterfaces() (ifs string) {
 	args := []string{"addr", "show"}
 	cmdOut := ExecuteIPCommand(args)
 	ifsNames := ParseIfs(cmdOut)
@@ -97,17 +113,19 @@ func GetInterfaces() (ifs string)  {
 	}
 }
 
-func ParseIfs(cmdOut string) (ifNames []model.Interface)  {
+// ParseIfs parses ExecuteIpCommand (ip addr show) output to array of model/route.
+// Returns array of model/interface.
+func ParseIfs(cmdOut string) (ifNames []model.Interface) {
 	ifsNames := []model.Interface{}
 	ifSlice := strings.Split(cmdOut, ": ")
 	x := 0
 
-	for i := 0; i < (len(ifSlice) - 1); i += 2{
-		ifsNames = append(ifsNames, model.Interface{Name:ifSlice[i + 1]})
-		s := strings.Split(ifSlice[i + 2], " ")
+	for i := 0; i < (len(ifSlice) - 1); i += 2 {
+		ifsNames = append(ifsNames, model.Interface{Name: ifSlice[i+1]})
+		s := strings.Split(ifSlice[i+2], " ")
 		for y := 0; y < len(s); y++ {
 			if s[y] == "inet" {
-				ip := strings.Split(s[y + 1], "/")[0]
+				ip := strings.Split(s[y+1], "/")[0]
 				ifsNames[x].IPAddress = ip
 				x++
 				break
@@ -117,8 +135,12 @@ func ParseIfs(cmdOut string) (ifNames []model.Interface)  {
 	return ifsNames
 }
 
+// ExecuteIPCommand executes command with arguments.
+// If command is executed successfully, then func returns
+// command line output of command. If command is not executed successfully,
+// then func returns actual error!
 
-func ExecuteIPCommand(args []string) (cmdOut string){
+func ExecuteIPCommand(args []string) (cmdOut string) {
 	cmd := exec.Command(command, args...)
 	cmdOutput := &bytes.Buffer{}
 	cmd.Stdout = cmdOutput
@@ -131,9 +153,9 @@ func ExecuteIPCommand(args []string) (cmdOut string){
 		default:
 			log.Errorf("Error occurred! %s (API problem)", err.Error())
 		}
-
+		return err.Error()
 	} else {
 		return string(cmdOutput.Bytes())
 	}
-	return ""
+
 }
