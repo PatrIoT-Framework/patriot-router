@@ -33,4 +33,4 @@ control routes on routers. API is written in golang, using http package.
 
 
 ## Build
-```docker build PatrIoT_router/```
+```docker build ./```

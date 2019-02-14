@@ -1,7 +1,26 @@
 #!/bin/bash
 # Bash script for starting all necessary daemons for app gateway
 
-/api/iprouteRESt/Controller &
-/api/iptables-api -ip 0.0.0.0 &
-exec "$@"
+
+function stop_daemons() {
+    echo "Stopping daemons"
+    kill -TERM "$REST_PID" 
+    kill -TERM "$API_PID" 
+}
+
+if [ "$1" == '/api/iptables-api' ]; then 
+    echo "Starting daemons"
+    trap 'stop_daemons' EXIT
+    
+    /api/iprouteRESt &
+    export REST_PID=$!
+    
+    exec "$@" & 
+    export API_PID=$! 
+    
+    wait $API_PID
+
+else
+    exec "$@"
+fi
 

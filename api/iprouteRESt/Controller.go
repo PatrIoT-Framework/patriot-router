@@ -1,13 +1,13 @@
 package main
 
 import (
+	"api/iproute2/manager"
+	"api/iproute2/model"
 	"encoding/json"
 	"fmt"
 	"github.com/olivere/elastic"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/sohlich/elogrus.v3"
-	"iproute2/manager"
-	"iproute2/model"
 	"net/http"
 	"strconv"
 	"strings"

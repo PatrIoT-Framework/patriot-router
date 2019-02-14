@@ -2,10 +2,10 @@
 package manager
 
 import (
+	"api/iproute2/model"
 	"bytes"
 	"encoding/json"
 	"github.com/sirupsen/logrus"
-	"iproute2/model"
 	"os"
 	"os/exec"
 	"strconv"
