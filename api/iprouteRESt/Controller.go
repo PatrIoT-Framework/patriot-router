@@ -74,24 +74,30 @@ func modDefaultRoute(w http.ResponseWriter, r *http.Request) {
 
 	params := []string{r.URL.Query().Get("interface")}
 
-	if checkParams(params) {
-		log.Error("Url Params are missing")
-		return
-	}
 	route := model.Route{InterfaceIP: params[0]}
 	log.Infof(route.InterfaceIP)
 	switch r.Method {
 
 	case http.MethodPut:
+		if checkParams(params) {
+			log.Error("Url Params are missing")
+			return
+		}
 		manager.CreateDefaultGateway(route)
 		log.WithFields(logrus.Fields{
 			"Interface": route.InterfaceIP,
 		}).Info("Created default route!")
 	case http.MethodDelete:
-		manager.RemoveDefaultGateway(route)
-		log.WithFields(logrus.Fields{
-			"Interface": route.InterfaceIP,
-		}).Info("Deleted default route!")
+		if checkParams(params) {
+			manager.RemoveDefaultGateway()
+			log.Info("Deleted default route")
+		} else {
+			manager.RemoveDefaultGatewayVia(route)
+			log.WithFields(logrus.Fields{
+				"Interface": route.InterfaceIP,
+			}).Info("Deleted default route!")
+		}
+
 	default:
 		log.Error("Unsupported method!")
 		w.WriteHeader(404)

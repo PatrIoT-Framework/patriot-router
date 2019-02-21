@@ -26,8 +26,15 @@ func CreateRouteWithIfIP(r model.Route) {
 }
 
 // RemoveDefaultGateway prepares command to remove default route and executes it with ExecuteIPCommand func.
-func RemoveDefaultGateway(r model.Route) {
+func RemoveDefaultGatewayVia(r model.Route) {
 	args := []string{"route", "delete", "default", "via", r.InterfaceIP}
+	cmdOut := ExecuteIPCommand(args)
+	log.Infof(cmdOut)
+
+}
+
+func RemoveDefaultGateway() {
+	args := []string{"route", "delete", "default"}
 	cmdOut := ExecuteIPCommand(args)
 	log.Infof(cmdOut)
 

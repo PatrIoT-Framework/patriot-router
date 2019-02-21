@@ -21,6 +21,10 @@ RUN go build -o /api/iprouteRESt Controller.go
 
 ADD start_daemons /start_daemons
 
+RUN apt update && \
+apt install traceroute
+
 WORKDIR /
+RUN chmod +x /start_daemons
 ENTRYPOINT ["/start_daemons"]
 CMD ["/api/iptables-api", "-ip", "0.0.0.0"]
