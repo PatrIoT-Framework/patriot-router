@@ -5,6 +5,7 @@ import (
 	"api/iproute2/model"
 	"bytes"
 	"encoding/json"
+	gelf "github.com/seatgeek/logrus-gelf-formatter"
 	"github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
@@ -16,9 +17,14 @@ const command = "ip"
 
 var log = logrus.New()
 
+func init() {
+	log.Formatter = new(gelf.GelfFormatter)
+	log.Level = logrus.InfoLevel
+}
+
 // CreateRouteWithIfIP prepares command to create route and executes it with ExecuteIPCommand func.
 func CreateRouteWithIfIP(r model.Route) {
-	dest := r.Destination + string("/") + strconv.Itoa(r.DestCIDR)
+	dest := r.Destination.IP + string("/") + strconv.Itoa(r.Destination.Mask)
 	args := []string{"route", "add", dest, "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
 	log.Infof(cmdOut)
@@ -50,7 +56,7 @@ func CreateDefaultGateway(r model.Route) {
 
 // RemoveRoute prepares command to remove route and executes it with ExecuteIPCommand func.
 func RemoveRoute(r model.Route) {
-	dest := r.Destination + string("/") + strconv.Itoa(r.DestCIDR)
+	dest := r.Destination.IP + string("/") + strconv.Itoa(r.Destination.Mask)
 	args := []string{"route", "delete", dest, "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
 	log.Infof(cmdOut)
@@ -87,11 +93,11 @@ func ParseStringRoutes(cmdOutput string) (parsedRoutes []model.Route) {
 			if y == 0 {
 
 				if route[y] == "default" {
-					r.Destination = route[y]
+					r.Destination.IP = route[y]
 				} else {
 					destAndCidr := strings.Split(route[y], "/")
-					r.Destination = destAndCidr[0]
-					r.DestCIDR, _ = strconv.Atoi(destAndCidr[1])
+					r.Destination.IP = destAndCidr[0]
+					r.Destination.Mask, _ = strconv.Atoi(destAndCidr[1])
 				}
 			}
 			if route[y] == "via" || route[y] == "src" {
@@ -147,15 +153,21 @@ func ParseIfs(cmdOut string) (ifNames []model.Interface) {
 func ExecuteIPCommand(args []string) (cmdOut string) {
 	cmd := exec.Command(command, args...)
 	cmdOutput := &bytes.Buffer{}
+	var stderr bytes.Buffer
 	cmd.Stdout = cmdOutput
+	cmd.Stderr = &stderr
 	err := cmd.Run()
 	log.SetOutput(os.Stdout)
 	if err != nil {
 		switch err := err.(type) {
 		case *exec.ExitError:
-			log.Errorf("Program exited with %s (User problem)", err.Error())
+			log.WithFields(logrus.Fields{
+				"Error exited with user error: " : err.Error(),
+				"Stacktrace" : stderr.String()}).Error("Error ocurred!")
 		default:
-			log.Errorf("Error occurred! %s (API problem)", err.Error())
+			log.WithFields(logrus.Fields{
+				"Error exited with API error: " : err.Error(),
+				"Stacktrace" : stderr.String()}).Error("Error ocurred!")
 		}
 		return err.Error()
 	}

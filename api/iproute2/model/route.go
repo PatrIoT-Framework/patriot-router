@@ -2,9 +2,9 @@
 // Network interfaces and routes.
 package model
 
+
 // Route represents actual record in linux routing table.
 type Route struct {
-	Destination string
-	DestCIDR    int
+	Destination Network
 	InterfaceIP string
 }

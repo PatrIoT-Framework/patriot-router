@@ -6,15 +6,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/olivere/elastic"
+	gelf "github.com/seatgeek/logrus-gelf-formatter"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/sohlich/elogrus.v3"
 	"net/http"
 	"strconv"
 	"strings"
 )
-
 var log = logrus.New()
 
+func init() {
+	log.Formatter = new(gelf.GelfFormatter)
+	log.Level = logrus.InfoLevel
+}
 // Homepage endpoint
 func homePage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "IPRoute2 controller!")
@@ -42,23 +46,23 @@ func modRoute(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	route := model.Route{Destination: params[0], InterfaceIP: params[2]}
-	route.DestCIDR, _ = strconv.Atoi(params[1])
+	route := model.Route{Destination: model.Network{params[0], 0}, InterfaceIP: params[2]}
+	route.Destination.Mask, _ = strconv.Atoi(params[1])
 
 	switch r.Method {
 
 	case http.MethodPut:
 		manager.CreateRouteWithIfIP(route)
 		log.WithFields(logrus.Fields{
-			"destination": route.Destination,
-			"dest CIDR":   route.DestCIDR,
+			"destination": route.Destination.IP,
+			"dest CIDR":   route.Destination.Mask,
 			"Interface":   route.InterfaceIP,
 		}).Info("Created new route!")
 	case http.MethodDelete:
 		manager.RemoveRoute(route)
 		log.WithFields(logrus.Fields{
-			"destination": route.Destination,
-			"dest CIDR":   route.DestCIDR,
+			"destination": route.Destination.IP,
+			"dest CIDR":   route.Destination.Mask,
 			"Interface":   route.InterfaceIP,
 		}).Info("Deleted route!")
 	default:
@@ -148,12 +152,13 @@ func setElasticLog(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Panic(err)
 	}
-	hook, err := elogrus.NewElasticHook(client, host, logrus.InfoLevel, "networklogs")
+	hook, err := elogrus.NewElasticHook(client, host, logrus.InfoLevel, "logs-home")
 	if err != nil {
 		log.Panic(err)
 	}
 	log.Hooks.Add(hook)
 	log.Info("Created hook to elastic log")
+	w.WriteHeader(200)
 
 }
 
@@ -165,7 +170,7 @@ func handleRequests() {
 	http.HandleFunc("/iproutes", getRoutes)
 	http.HandleFunc("/interfaces", getInterfaces)
 	http.HandleFunc("/setLogHook", setElasticLog)
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Fatal(http.ListenAndServe(":8090", nil))
 }
 
 func main() {
