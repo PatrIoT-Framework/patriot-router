@@ -27,7 +27,7 @@ func CreateRouteWithIfIP(r model.Route) {
 	dest := r.Destination.IP + string("/") + strconv.Itoa(r.Destination.Mask)
 	args := []string{"route", "add", dest, "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
-	log.Infof(cmdOut)
+	log.Info(cmdOut)
 
 }
 
@@ -35,14 +35,14 @@ func CreateRouteWithIfIP(r model.Route) {
 func RemoveDefaultGatewayVia(r model.Route) {
 	args := []string{"route", "delete", "default", "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
-	log.Infof(cmdOut)
+	log.Info(cmdOut)
 
 }
 
 func RemoveDefaultGateway() {
 	args := []string{"route", "delete", "default"}
 	cmdOut := ExecuteIPCommand(args)
-	log.Infof(cmdOut)
+	log.Info(cmdOut)
 
 }
 
@@ -50,7 +50,7 @@ func RemoveDefaultGateway() {
 func CreateDefaultGateway(r model.Route) {
 	args := []string{"route", "add", "default", "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
-	log.Infof(cmdOut)
+	log.Info(cmdOut)
 
 }
 
@@ -59,7 +59,7 @@ func RemoveRoute(r model.Route) {
 	dest := r.Destination.IP + string("/") + strconv.Itoa(r.Destination.Mask)
 	args := []string{"route", "delete", dest, "via", r.InterfaceIP}
 	cmdOut := ExecuteIPCommand(args)
-	log.Infof(cmdOut)
+	log.Info(cmdOut)
 
 }
 
